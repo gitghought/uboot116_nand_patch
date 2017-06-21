@@ -1446,135 +1446,6 @@ diff -urN u-boot-1.1.6/cpu/arm920t/cpu.c u-boot-1.1.6_jz2440/cpu/arm920t/cpu.c
  #endif
  	return 0;
  }
-diff -urN u-boot-1.1.6/cpu/arm920t/s3c24x0/interrupts.c u-boot-1.1.6_jz2440/cpu/arm920t/s3c24x0/interrupts.c
---- u-boot-1.1.6/cpu/arm920t/s3c24x0/interrupts.c	2006-11-02 22:15:01.000000000 +0800
-+++ u-boot-1.1.6_jz2440/cpu/arm920t/s3c24x0/interrupts.c	2010-11-26 12:54:37.726297356 +0800
-@@ -216,4 +216,125 @@
- 	/*NOTREACHED*/
- }
- 
-+/* Start : add by www.100ask.net */
-+void (*isr_handle_array[50])(void);
-+S3C24X0_INTERRUPT * intregs;
-+    
-+extern void IsrUsbd(void);
-+extern void IsrDma2(void);
-+
-+/************************* Timer ********************************/
-+static int intCount;
-+
-+void IsrWatchdog(void);
-+
-+void ClearPending(int bit) 
-+{
-+    intregs->SRCPND = bit;
-+    intregs->INTPND = bit;
-+}
-+
-+void Timer_InitEx(void)
-+{
-+	intCount=0;	
-+	intregs->SUBSRCPND	= (1<<13);
-+	ClearPending(BIT_WDT_AC97/*BIT_WDT*/);
-+	intregs->INTMSK&=~(BIT_WDT_AC97 /*BIT_WDT*/);
-+	intregs->INTSUBMSK &= ~(1<<13);
-+}
-+
-+
-+void Timer_StartEx(void)
-+{
-+    S3C24X0_WATCHDOG * const wdtregs = S3C24X0_GetBase_WATCHDOG();
-+    
-+	wdtregs->WTCON=((get_PCLK()/1000000-1)<<8)|(0<<3)|(1<<2);	// 16us
-+	wdtregs->WTDAT=0xffff;
-+	wdtregs->WTCNT=0xffff;   
-+
-+	// 1/16/(65+1),interrupt enable,reset disable,watchdog enable
-+	wdtregs->WTCON=((get_PCLK()/1000000-1)<<8)|(0<<3)|(1<<2)|(0<<0)|(1<<5);   
-+}
-+
-+unsigned int Timer_StopEx(void)
-+{
-+	int count;
-+    S3C24X0_WATCHDOG * const wdtregs = S3C24X0_GetBase_WATCHDOG();
-+
-+	wdtregs->WTCON=((get_PCLK()/1000000-1)<<8);
-+	intregs->INTMSK|=BIT_WDT_AC97; //BIT_WDT;
-+	intregs->INTSUBMSK |= (1<<13);
-+	
-+	count=(0xffff-wdtregs->WTCNT)+(intCount*0xffff);
-+	return ((unsigned int)count*16/1000000);
-+}
-+
-+
-+void  IsrWatchdog(void)
-+{
-+	intregs->SUBSRCPND	= (1<<13);
-+	ClearPending(BIT_WDT_AC97 /* BIT_WDT */);
-+	intCount++;   	
-+}
-+
-+int g_TimerIntHappen;
-+void  IsrTimer4(void)
-+{
-+	ClearPending(BIT_TIMER4);
-+	*(volatile int *)&g_TimerIntHappen = 1;
-+}
-+
-+
-+void Dummy_isr(void)
-+{
-+    printf("Dummy_isr error, interrupt number: %d, INTMSK = 0x%x\n", intregs->INTOFFSET, intregs->INTMSK);
-+    while(1);
-+}
-+
-+void Isr_Init(void)
-+{
-+    int i = 0;
-+    intregs = S3C24X0_GetBase_INTERRUPT();
-+    
-+    for (i = 0; i < sizeof(isr_handle_array) / sizeof(isr_handle_array[0]); i++ )
-+    {
-+        isr_handle_array[i] = Dummy_isr;
-+    }
-+
-+    intregs->INTMOD=0x0;	      // All=IRQ mode
-+    intregs->INTMSK=BIT_ALLMSK;	  // All interrupt is masked.
-+
-+    //pISR_URXD0=(unsigned)Uart0_RxInt;	
-+    //rINTMSK=~(BIT_URXD0);   //enable UART0 RX Default value=0xffffffff
-+
-+	isr_handle_array[ISR_TIMER4_OFT] = IsrTimer4;
-+	isr_handle_array[ISR_WDT_OFT]  = IsrWatchdog;
-+
-+#ifdef CONFIG_USB_DEVICE
-+    isr_handle_array[ISR_USBD_OFT] = IsrUsbd;
-+    isr_handle_array[ISR_DMA2_OFT] = IsrDma2;
-+    ClearPending(BIT_DMA2);
-+    ClearPending(BIT_USBD);
-+#endif    
-+}
-+
-+
-+void IRQ_Handle()
-+{
-+	unsigned long oft = intregs->INTOFFSET;
-+    S3C24X0_GPIO * const gpio = S3C24X0_GetBase_GPIO();
-+    
-+//    printk("IRQ_Handle: %d\n", oft);
-+    
-+	//清中断
-+	if( oft == 4 ) gpio->EINTPEND = 1<<7;		//EINT4-7合用IRQ4，注意EINTPEND[3:0]保留未用，向这些位写入1可能导致未知结果
-+	intregs->SRCPND = 1<<oft;	
-+	intregs->INTPND	= intregs->INTPND;	 
-+
-+    /* run the isr */
-+    isr_handle_array[oft]();
-+}
-+
-+/* End : add by www.100ask.net */
-+
- #endif /* defined(CONFIG_S3C2400) || defined (CONFIG_S3C2410) || defined (CONFIG_TRAB) */
 diff -urN u-boot-1.1.6/cpu/arm920t/s3c24x0/Makefile u-boot-1.1.6_jz2440/cpu/arm920t/s3c24x0/Makefile
 --- u-boot-1.1.6/cpu/arm920t/s3c24x0/Makefile	2006-11-02 22:15:01.000000000 +0800
 +++ u-boot-1.1.6_jz2440/cpu/arm920t/s3c24x0/Makefile	2010-11-26 12:54:37.726297356 +0800
@@ -2347,15 +2218,15 @@ diff -urN u-boot-1.1.6/cpu/arm920t/start.S u-boot-1.1.6_jz2440/cpu/arm920t/start
 -	irq_save_user_regs
 -	bl 	do_irq
 -	irq_restore_user_regs
-+/* add by www.100ask.net to use IRQ for USB and DMA */
-+	sub	lr, lr, #4			        @ the return address
-+	ldr	sp, IRQ_STACK_START	        @ the stack for irq
-+	stmdb	sp!, 	{ r0-r12,lr }	@ save registers
-+	
-+	ldr	lr,	=int_return		        @ set the return addr
-+	ldr	pc, =IRQ_Handle		        @ call the isr
-+int_return:
-+	ldmia	sp!, 	{ r0-r12,pc }^	@ return from interrupt
++///* add by www.100ask.net to use IRQ for USB and DMA */
++//	sub	lr, lr, #4			        @ the return address
++//	ldr	sp, IRQ_STACK_START	        @ the stack for irq
++//	stmdb	sp!, 	{ r0-r12,lr }	@ save registers
++//	
++//	ldr	lr,	=int_return		        @ set the return addr
++//	ldr	pc, =IRQ_Handle		        @ call the isr
++//int_return:
++//	ldmia	sp!, 	{ r0-r12,pc }^	@ return from interrupt
  
  	.align	5
  fiq:
@@ -7380,28 +7251,6 @@ diff -urN u-boot-1.1.6/lib_arm/armlinux.c u-boot-1.1.6_jz2440/lib_arm/armlinux.c
  	}
  #endif
  
-diff -urN u-boot-1.1.6/lib_arm/board.c u-boot-1.1.6_jz2440/lib_arm/board.c
---- u-boot-1.1.6/lib_arm/board.c	2006-11-02 22:15:01.000000000 +0800
-+++ u-boot-1.1.6_jz2440/lib_arm/board.c	2010-11-26 12:54:37.662096129 +0800
-@@ -360,10 +360,15 @@
- 	misc_init_r ();
- #endif
- 
--	/* enable exceptions */
--	enable_interrupts ();
-+	Port_Init();
-+	if (!PreLoadedONRAM) {
-+		/* enable exceptions */
-+		enable_interrupts ();
-+	    /* add by www.100ask.net */
-+	    usb_init();
-+	}
- 
--	/* Perform network card initialisation if necessary */
-+    /* Perform network card initialisation if necessary */
- #ifdef CONFIG_DRIVER_CS8900
- 	cs8900_get_enetaddr (gd->bd->bi_enetaddr);
- #endif
 diff -urN u-boot-1.1.6/Makefile u-boot-1.1.6_jz2440/Makefile
 --- u-boot-1.1.6/Makefile	2006-11-02 22:15:01.000000000 +0800
 +++ u-boot-1.1.6_jz2440/Makefile	2010-11-26 12:54:37.830153999 +0800
@@ -7409,7 +7258,7 @@ diff -urN u-boot-1.1.6/Makefile u-boot-1.1.6_jz2440/Makefile
  LIBS += drivers/libdrivers.a
  LIBS += drivers/nand/libnand.a
  LIBS += drivers/nand_legacy/libnand_legacy.a
-+LIBS += drivers/usb/libusb.a
++//LIBS += drivers/usb/libusb.a
  LIBS += drivers/sk98lin/libsk98lin.a
 -LIBS += post/libpost.a post/cpu/libcpu.a
  LIBS += common/libcommon.a
