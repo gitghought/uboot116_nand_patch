@@ -2448,8 +2448,6 @@ diff -urN u-boot-1.1.6/include/configs/100ask24x0.h u-boot-1.1.6_jz2440/include/
 +#define NAND_MAX_CHIPS          1
 +
 +#endif	/* __CONFIG_H */
-diff -urN u-boot-1.1.6/include/nand.h u-boot-1.1.6_jz2440/include/nand.h
---- u-boot-1.1.6/include/nand.h	2006-11-02 22:15:01.000000000 +0800
 +++ u-boot-1.1.6_jz2440/include/nand.h	2010-11-26 12:54:38.062126185 +0800
 @@ -78,6 +78,14 @@
  	int pad;		/* pad to page size */
