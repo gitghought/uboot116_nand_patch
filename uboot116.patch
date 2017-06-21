@@ -1423,29 +1423,6 @@ diff -urN u-boot-1.1.6/board/100ask24x0/u-boot.lds u-boot-1.1.6_jz2440/board/100
 +	.bss : { *(.bss) }
 +	_end = .;
 +}
-diff -urN u-boot-1.1.6/cpu/arm920t/cpu.c u-boot-1.1.6_jz2440/cpu/arm920t/cpu.c
---- u-boot-1.1.6/cpu/arm920t/cpu.c	2006-11-02 22:15:01.000000000 +0800
-+++ u-boot-1.1.6_jz2440/cpu/arm920t/cpu.c	2010-11-26 12:54:37.714311555 +0800
-@@ -88,7 +88,6 @@
- #define C1_IC		(1<<12)		/* icache off/on */
- #define C1_HIGH_VECTORS	(1<<13)		/* location of vectors: low/high addresses */
- 
--
- int cpu_init (void)
- {
- 	/*
-@@ -97,6 +96,11 @@
- #ifdef CONFIG_USE_IRQ
- 	IRQ_STACK_START = _armboot_start - CFG_MALLOC_LEN - CFG_GBL_DATA_SIZE - 4;
- 	FIQ_STACK_START = IRQ_STACK_START - CONFIG_STACKSIZE_IRQ;
-+    FREE_RAM_END = FIQ_STACK_START - CONFIG_STACKSIZE_FIQ - CONFIG_STACKSIZE;
-+    FREE_RAM_SIZE = FREE_RAM_END - PHYS_SDRAM_1;
-+#else    
-+    FREE_RAM_END = _armboot_start - CFG_MALLOC_LEN - CFG_GBL_DATA_SIZE - 4 - CONFIG_STACKSIZE;
-+    FREE_RAM_SIZE = FREE_RAM_END - PHYS_SDRAM_1;
- #endif
- 	return 0;
- }
 diff -urN u-boot-1.1.6/cpu/arm920t/s3c24x0/Makefile u-boot-1.1.6_jz2440/cpu/arm920t/s3c24x0/Makefile
 --- u-boot-1.1.6/cpu/arm920t/s3c24x0/Makefile	2006-11-02 22:15:01.000000000 +0800
 +++ u-boot-1.1.6_jz2440/cpu/arm920t/s3c24x0/Makefile	2010-11-26 12:54:37.726297356 +0800
@@ -2230,19 +2207,6 @@ diff -urN u-boot-1.1.6/cpu/arm920t/start.S u-boot-1.1.6_jz2440/cpu/arm920t/start
  
  	.align	5
  fiq:
-diff -urN u-boot-1.1.6/include/asm-arm/u-boot-arm.h u-boot-1.1.6_jz2440/include/asm-arm/u-boot-arm.h
---- u-boot-1.1.6/include/asm-arm/u-boot-arm.h	2006-11-02 22:15:01.000000000 +0800
-+++ u-boot-1.1.6_jz2440/include/asm-arm/u-boot-arm.h	2010-11-26 12:54:38.038158106 +0800
-@@ -35,6 +35,9 @@
- extern ulong _bss_end;		/* BSS end */
- extern ulong IRQ_STACK_START;	/* top of IRQ stack */
- extern ulong FIQ_STACK_START;	/* top of FIQ stack */
-+extern ulong FREE_RAM_END;	/* top of free ram */
-+extern ulong FREE_RAM_SIZE;	/* size of free ram */
-+extern ulong PreLoadedONRAM;
- 
- /* cpu/.../cpu.c */
- int	cpu_init(void);
 diff -urN u-boot-1.1.6/include/configs/100ask24x0.h u-boot-1.1.6_jz2440/include/configs/100ask24x0.h
 --- u-boot-1.1.6/include/configs/100ask24x0.h	1970-01-01 07:00:00.000000000 +0700
 +++ u-boot-1.1.6_jz2440/include/configs/100ask24x0.h	2010-11-26 12:54:37.958266315 +0800
