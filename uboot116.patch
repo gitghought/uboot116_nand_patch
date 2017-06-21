@@ -2448,34 +2448,6 @@ diff -urN u-boot-1.1.6/include/configs/100ask24x0.h u-boot-1.1.6_jz2440/include/
 +#define NAND_MAX_CHIPS          1
 +
 +#endif	/* __CONFIG_H */
-+++ u-boot-1.1.6_jz2440/include/nand.h	2010-11-26 12:54:38.062126185 +0800
-@@ -78,6 +78,14 @@
- 	int pad;		/* pad to page size */
- 	int blockalign;		/* 1|2|4 set multiple of eraseblocks
- 				 * to align to */
-+    int skipfirstblk;   /* if true, skip the first good block,  
-+                         * set true when write the yaffs image, 
-+                         * add by www.100ask.net
-+                         */                    
-+    int nocheckbadblk;  /* if true, don't check bad blockes,
-+                         * use them as good blockes
-+                         * add by www.100ask.net
-+                         */                    
- };
- 
- typedef struct nand_write_options nand_write_options_t;
-@@ -88,6 +96,11 @@
- 	ulong offset;		/* start address in NAND */
- 	int quiet;		/* don't display progress messages */
- 	int readoob;		/* put oob data in image */
-+	int noecc;		/* read without ecc */
-+    int nocheckbadblk;  /* if true, don't check bad blockes,
-+                         * use them as good blockes
-+                         * add by www.100ask.net
-+                         */                    
- };
- 
- typedef struct nand_read_options nand_read_options_t;
 diff -urN u-boot-1.1.6/include/s3c2410.h u-boot-1.1.6_jz2440/include/s3c2410.h
 --- u-boot-1.1.6/include/s3c2410.h	2006-11-02 22:15:01.000000000 +0800
 +++ u-boot-1.1.6_jz2440/include/s3c2410.h	2010-11-26 12:54:37.994099919 +0800
