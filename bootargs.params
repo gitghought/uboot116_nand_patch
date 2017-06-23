@@ -1,0 +1,1 @@
+set bootargs noinitrd rootfstype=jffs2 root=/dev/mtdblock3 init=/linuxrc console=ttySAC0
